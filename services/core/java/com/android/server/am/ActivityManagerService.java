@@ -9660,6 +9660,8 @@ public final class ActivityManagerService extends ActivityManagerNative
         try {
             cpi = AppGlobals.getPackageManager().resolveContentProvider(authority,
                     STOCK_PM_FLAGS | PackageManager.GET_URI_PERMISSION_PATTERNS, userId);
+                    STOCK_PM_FLAGS | PackageManager.GET_URI_PERMISSION_PATTERNS,
+                    userId);
         } catch (RemoteException ignored) {
         }
         if (cpi == null) {
