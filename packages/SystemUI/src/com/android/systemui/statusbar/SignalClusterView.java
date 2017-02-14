@@ -60,6 +60,7 @@ public class SignalClusterView
     private static final String SLOT_WIFI = "wifi";
     private static final String SLOT_ETHERNET = "ethernet";
     private static final String SLOT_VPN = "vpn";
+    private static final String SLOT_VOLTE = "volte";
 
     NetworkControllerImpl mNC;
     SecurityController mSC;
@@ -70,6 +71,7 @@ public class SignalClusterView
     private int mEthernetIconId = 0;
     private int mLastEthernetIconId = -1;
     private boolean mWifiVisible = false;
+    private boolean mMobileIms = false;
     private int mWifiStrengthId = 0;
     private int mLastWifiStrengthId = -1;
     private boolean mIsAirplaneMode = false;
@@ -88,7 +90,8 @@ public class SignalClusterView
 
     ViewGroup mEthernetGroup, mWifiGroup;
     View mNoSimsCombo;
-    ImageView mVpn, mEthernet, mWifi, mAirplane, mNoSims, mEthernetDark, mWifiDark, mNoSimsDark;
+    ImageView mVpn, mEthernet, mWifi, mAirplane, mNoSims, mEthernetDark, mWifiDark, mNoSimsDark, mMobileImsImageView;
+    ImageView mWifiActivity;
     View mWifiAirplaneSpacer;
     View mWifiSignalSpacer;
     LinearLayout mMobileSignalGroup;
@@ -102,6 +105,7 @@ public class SignalClusterView
     private boolean mBlockWifi;
     private boolean mBlockEthernet;
     private boolean mBlockVpn;
+    private boolean mBlockVolte;
 
     public SignalClusterView(Context context) {
         this(context, null);
@@ -129,11 +133,16 @@ public class SignalClusterView
 
         if (blockAirplane != mBlockAirplane || blockMobile != mBlockMobile
                 || blockEthernet != mBlockEthernet || blockWifi != mBlockWifi || blockVpn != mBlockVpn) {
+        boolean blockVolte = blockList.contains(SLOT_VOLTE);
+
+        if (blockAirplane != mBlockAirplane || blockMobile != mBlockMobile
+                || blockEthernet != mBlockEthernet || blockWifi != mBlockWifi || blockVolte != mBlockVolte) {
             mBlockAirplane = blockAirplane;
             mBlockMobile = blockMobile;
             mBlockEthernet = blockEthernet;
             mBlockWifi = blockWifi;
             mBlockVpn = blockVpn;
+            mBlockVolte = blockVolte;
             // Re-register to get new callbacks.
             mNC.removeSignalCallback(this);
             mNC.addSignalCallback(this);
@@ -180,6 +189,7 @@ public class SignalClusterView
         mAirplane       = (ImageView) findViewById(R.id.airplane);
         mNoSims         = (ImageView) findViewById(R.id.no_sims);
         mNoSimsDark     = (ImageView) findViewById(R.id.no_sims_dark);
+        mMobileImsImageView      = (ImageView) findViewById(R.id.ims_hd);
         mNoSimsCombo    =             findViewById(R.id.no_sims_combo);
         mWifiAirplaneSpacer =         findViewById(R.id.wifi_airplane_spacer);
         mWifiSignalSpacer =           findViewById(R.id.wifi_signal_spacer);
@@ -201,6 +211,7 @@ public class SignalClusterView
         mWifiGroup      = null;
         mWifi           = null;
         mAirplane       = null;
+        mMobileImsImageView      = null;
         mMobileSignalGroup.removeAllViews();
         mMobileSignalGroup = null;
         TunerService.get(mContext).removeTunable(this);
@@ -235,7 +246,7 @@ public class SignalClusterView
     @Override
     public void setMobileDataIndicators(IconState statusIcon, IconState qsIcon, int statusType,
             int qsType, boolean activityIn, boolean activityOut, String typeContentDescription,
-            String description, boolean isWide, boolean showRoamingIndicator, int subId) {
+            String description, boolean isWide, boolean showRoamingIndicator, int subId, boolean isMobileIms) {
         PhoneState state = getState(subId);
         if (state == null) {
             return;
@@ -245,6 +256,7 @@ public class SignalClusterView
         state.mMobileTypeId = statusType;
         state.mMobileDescription = statusIcon.contentDescription;
         state.mMobileTypeDescription = typeContentDescription;
+        mMobileIms = isMobileIms;
         state.mIsMobileTypeIconWide = statusType != 0 && isWide;
         state.mShowRoamingIndicator = showRoamingIndicator;
 
@@ -254,6 +266,7 @@ public class SignalClusterView
     @Override
     public void setEthernetIndicators(IconState state) {
         mEthernetVisible = state.visible && !mBlockEthernet;
+
         mEthernetIconId = state.icon;
         mEthernetDescription = state.contentDescription;
 
@@ -263,6 +276,7 @@ public class SignalClusterView
     @Override
     public void setNoSims(boolean show) {
         mNoSimsVisible = show && !mBlockMobile;
+        mMobileIms = !mNoSimsVisible && mMobileIms;
         apply();
     }
 
@@ -449,6 +463,11 @@ public class SignalClusterView
         } else {
             mAirplane.setVisibility(View.GONE);
         }
+        if (mMobileIms && !mBlockVolte){
+            mMobileImsImageView.setVisibility(View.VISIBLE);
+        } else {
+            mMobileImsImageView.setVisibility(View.GONE);
+        }
 
         if (mIsAirplaneMode && mWifiVisible) {
             mWifiAirplaneSpacer.setVisibility(View.VISIBLE);
@@ -528,7 +547,8 @@ public class SignalClusterView
         setTint(mEthernetDark, mNetworkSignalTint);
         setTint(mAirplane, mAirplaneModeTint);
 	} else {
-	setTint(mVpn, mIconTint);
+        setTint(mVpn, mIconTint);
+        setTint(mMobileImsImageView, mIconTint);
         setTint(mAirplane, mIconTint);
 	}
         applyDarkIntensity(mDarkIntensity, mNoSims, mNoSimsDark);
